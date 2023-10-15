@@ -2,6 +2,7 @@
 var hexLayerGroup, choroplethLayerGroup;
 var selectedHexLayer;
 var miniMap; 
+var neighborsMap;
 
 // Function to initialize the hexagon map
 function drawHexMap() {
@@ -151,17 +152,6 @@ function highlightCorrespondingChoropleth(geoid) {
 }
 
 function displaySelectedInThirdBox(geoid) {
-    if (!miniMap) {
-        miniMap = L.map('third-box', {
-            center: [41.6032, -73.0877],
-            zoom: 10,
-            layers: [],
-            zoomControl: false,
-            attributionControl: false,
-        });
-        document.getElementById('third-box').style.backgroundColor = 'transparent';
-    }
-
     var correspondingFeature;
     choroplethLayerGroup.eachLayer(function(layer) {
         if (layer.feature.properties.GEOID === geoid) {
@@ -170,6 +160,32 @@ function displaySelectedInThirdBox(geoid) {
     });
 
     if (correspondingFeature) {
+        // Calculate the geographical center (centroid) of the selected feature
+        var centroid = turf.centroid(correspondingFeature);
+        var centerCoordinates = centroid.geometry.coordinates.reverse(); // Turf uses [long, lat], Leaflet uses [lat, long]
+
+        if (!miniMap) {
+            // Initialize the miniMap if it hasn't been already
+            miniMap = L.map('third-box', {
+                center: centerCoordinates, // use the centroid coordinates here
+                zoom: 10,
+                layers: [],
+                zoomControl: false,
+                attributionControl: false,
+            });
+
+            // Here we add a tile layer - this will be the base map
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(miniMap);
+
+            document.getElementById('third-box').style.backgroundColor = 'transparent';
+        } else {
+            // If miniMap already exists, just pan to the new center
+            miniMap.panTo(centerCoordinates);
+        }
+
         if (selectedHexLayer) {
             miniMap.removeLayer(selectedHexLayer);
         }
@@ -186,7 +202,114 @@ function displaySelectedInThirdBox(geoid) {
             }
         }).addTo(miniMap);
 
+        // Fit the map bounds to the selected feature
         miniMap.fitBounds(selectedHexLayer.getBounds());
+
+        displayFeaturePropertiesInTable(correspondingFeature.properties);
+        displaySelectedWithNeighbors(correspondingFeature.properties.GEOID);
+    } else {
+        console.error('No matching feature found for GEOID:', geoid);
+    }
+}
+
+
+// New function: Builds a table and populates it with the feature's properties
+function displayFeaturePropertiesInTable(properties) {
+    
+    // Create a new table element
+    var table = document.createElement('table');
+    
+    // Add a header to the table
+    var thead = table.createTHead();
+    var headerRow = thead.insertRow();
+    var th1 = headerRow.insertCell();
+    th1.textContent = 'Property';
+    var th2 = headerRow.insertCell();
+    th2.textContent = 'Value';
+
+    // Add the data to the table
+    var tbody = table.createTBody();
+    Object.keys(properties).forEach(function(key) {
+        var row = tbody.insertRow();
+        var cell1 = row.insertCell();
+        var cell2 = row.insertCell();
+        cell1.textContent = key;
+        cell2.textContent = properties[key];
+    });
+
+    // Get the container for the table, clear it, and add the new table
+    var container = document.getElementById('properties-table');
+    container.innerHTML = '';  // Clear existing contents
+    container.appendChild(table);
+}
+
+function displaySelectedWithNeighbors(geoid) {
+    // Initialize the neighbors map if it hasn't been already
+    if (!neighborsMap) {
+        neighborsMap = L.map('bottom-second-box', {
+            center: [41.6032, -73.0877], // Coordinates for Connecticut
+            zoom: 10,
+            layers: [],
+            zoomControl: false,
+            attributionControl: false,
+        });
+        document.getElementById('bottom-second-box').style.backgroundColor = 'transparent';
+    }
+
+    var selectedFeature;
+    var neighbors = [];
+
+    // Find the selected feature and its neighbors
+    choroplethLayerGroup.eachLayer(function(layer) {
+        if (layer.feature.properties.GEOID === geoid) {
+            selectedFeature = layer.feature;
+        }
+    });
+
+    if (selectedFeature) {
+        var layers = [];  // Array to hold your Leaflet layers
+
+        // Using Turf, find features that share a boundary with the selected one
+        choroplethLayerGroup.eachLayer(function(layer) {
+            if (turf.booleanIntersects(selectedFeature, layer.feature)) {
+                neighbors.push(layer.feature);
+            }
+        });
+
+        // Clear existing layers on the neighbors map
+        neighborsMap.eachLayer(function(layer) {
+            neighborsMap.removeLayer(layer);
+        });
+
+        // Highlight the selected feature and add it to the layers array
+        var selectedLayer = L.geoJSON(selectedFeature, {
+            style: {
+                color: 'blue', // or whatever highlight color you prefer
+                weight: 2,
+                opacity: 1,
+                fillColor: 'blue',
+                fillOpacity: 0.7
+            }
+        }).addTo(neighborsMap);
+        layers.push(selectedLayer);  // Add the new layer to your array
+
+        // Display the neighbors and add them to the layers array
+        neighbors.forEach(function(neighborFeature) {
+            var neighborLayer = L.geoJSON(neighborFeature, {
+                style: {
+                    color: 'green', // or a different color to differentiate from the selected feature
+                    weight: 1,
+                    opacity: 0.7,
+                    fillColor: 'green',
+                    fillOpacity: 0.5
+                }
+            }).addTo(neighborsMap);
+            layers.push(neighborLayer);  // Add the new layer to your array
+        });
+
+        // Adjust the view to show all relevant features
+        var group = new L.featureGroup(layers);  // Use your layers array here
+        neighborsMap.fitBounds(group.getBounds());
     } else {
         console.error('No matching feature found for GEOID:', geoid);
     }

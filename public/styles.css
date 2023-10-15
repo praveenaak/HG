@@ -37,29 +37,28 @@ body {
 }
 
 
-#hex-map {
-    position: absolute; /* stretches the map to fill the entire container */
+#hex-map, #map, #third-box, #bottom-second-box {
+    position: absolute;
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
 }
 
-
-#map {
-    position: absolute; /* stretches the map to fill the entire container */
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+#properties-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px; /* adjust as needed */
 }
 
-#third-box {
-    position: absolute; /* stretches the map to fill the entire container */
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
+#properties-table th, #properties-table td {
+    border: 1px solid #ddd; /* adjust color as needed */
+    padding: 8px; /* adjust as needed */
+}
+
+#properties-table th {
+    background-color: #f2f2f2; /* adjust color as needed */
+    color: black; /* adjust color as needed */
 }
 
 
