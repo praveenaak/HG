@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box; /* New: makes sure padding doesn't add to the total width/height */
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -10,24 +14,47 @@ body {
 
 .container {
     width: 80%;
+    height: 80%; /* Adjust based on your preference */
     display: flex;
     flex-direction: column;
-    align-items: stretch;
 }
 
 .top, .bottom {
+    flex: 1;  /* Adjusts each section to take up equal amount of space within the container */
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    overflow: hidden; /* Prevents boxes from overflowing their container */
 }
 
 .box {
-    flex: 1;
+    flex-grow: 1;  /* Allows the box to grow and take up extra space */
     border: 1px solid black;
-    padding: 20px;
-    margin: 10px;
-    text-align: center;
+    padding: 100px;  /* Adjusted padding */
+    margin: 5px;  /* Adjusted margin */
+    display: flex;  /* Makes each box a flex container for vertical alignment */
+    justify-content: center; /* Centers content horizontally */
+    align-items: center; /* Centers content vertically */
+    position: relative; /* Keeps the map positioned within the box */
 }
+
+
+#hex-map {
+    position: absolute; /* stretches the map to fill the entire container */
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+
+#map {
+    position: absolute; /* stretches the map to fill the entire container */
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+/* Add styles for the bottom boxes if necessary */
+
 
 .bottom .box:last-child {
     margin-right: 0;
