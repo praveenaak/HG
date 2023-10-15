@@ -53,7 +53,14 @@ body {
     left: 0;
     right: 0;
 }
-/* Add styles for the bottom boxes if necessary */
+
+#third-box {
+    position: absolute; /* stretches the map to fill the entire container */
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
 
 
 .bottom .box:last-child {

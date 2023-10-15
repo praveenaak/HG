@@ -1,6 +1,7 @@
 // Global variables for the layer groups
 var hexLayerGroup, choroplethLayerGroup;
 var selectedHexLayer;
+var miniMap; 
 
 // Function to initialize the hexagon map
 function drawHexMap() {
@@ -17,12 +18,7 @@ function drawHexMap() {
 
     // Fetch the hexagon GeoJSON data
     fetch('../data/hexagons.geojson')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             function defaultStyle(feature) {
                 return {
@@ -36,7 +32,7 @@ function drawHexMap() {
 
             function highlightStyle(feature) {
                 return {
-                    fillColor: 'yellow', // the color to use when a hexagon is clicked
+                    fillColor: 'yellow',
                     weight: 0.5,
                     color: '#666',
                     dashArray: '',
@@ -48,38 +44,34 @@ function drawHexMap() {
             hexLayerGroup = L.geoJson(data, {
                 style: defaultStyle,
                 onEachFeature: function(feature, layer) {
-                    layer.on('click', function(e) {
-                        // Reset style of the previously selected hexagon
+                    layer.on('click', function() {
                         if (selectedHexLayer) {
                             hexLayerGroup.resetStyle(selectedHexLayer);
                         }
 
-                        // Set the new style for the clicked hexagon
-                        var clickedLayer = e.target;
-                        clickedLayer.setStyle(highlightStyle(feature));
+                        layer.setStyle(highlightStyle(feature));
 
                         // Save the clicked layer as the selected layer for the next click event
-                        selectedHexLayer = clickedLayer;
+                        selectedHexLayer = layer;
 
-                        console.log("Hexagon clicked, GEOID: " + feature.properties.GEOID);
-                        highlightCorrespondingChoropleth(feature.properties.GEOID);
+                        // Highlight the corresponding area on the choropleth map and display it in the third box
+                        var geoid = feature.properties.GEOID;
+                        highlightCorrespondingChoropleth(geoid);
+                        displaySelectedInThirdBox(geoid);
                     });
                 }
             }).addTo(map);
 
-            var bounds = L.geoJson(data).getBounds();
-            map.fitBounds(bounds);
+            map.fitBounds(hexLayerGroup.getBounds());
         })
-        .catch(error => {
-            console.error('Fetch error:', error);
-        });
+        .catch(error => console.error('Error loading hexagon GeoJSON data:', error));
 }
 
 function drawChoroplethMap() {
     // Initialize the map without a tile layer and with a transparent background
     var map = L.map('map', {
         center: [33.44, -112.07], // Coordinates for Phoenix
-        zoom: 10, // This zoom level can be adjusted
+        zoom: 5 , // This zoom level can be adjusted
         zoomControl: true, // If you want, you can set this to false to hide zoom controls
         attributionControl: false, // Hide default Leaflet attribution
     });
@@ -155,6 +147,48 @@ function highlightCorrespondingChoropleth(geoid) {
 
     if (!found) {
         console.log("No matching layer found for GEOID:", geoid);
+    }
+}
+
+function displaySelectedInThirdBox(geoid) {
+    if (!miniMap) {
+        miniMap = L.map('third-box', {
+            center: [41.6032, -73.0877],
+            zoom: 10,
+            layers: [],
+            zoomControl: false,
+            attributionControl: false,
+        });
+        document.getElementById('third-box').style.backgroundColor = 'transparent';
+    }
+
+    var correspondingFeature;
+    choroplethLayerGroup.eachLayer(function(layer) {
+        if (layer.feature.properties.GEOID === geoid) {
+            correspondingFeature = layer.feature;
+        }
+    });
+
+    if (correspondingFeature) {
+        if (selectedHexLayer) {
+            miniMap.removeLayer(selectedHexLayer);
+        }
+
+        selectedHexLayer = L.geoJson(correspondingFeature, {
+            style: function() {
+                return {
+                    color: 'yellow',
+                    weight: 2,
+                    opacity: 1,
+                    fillColor: 'yellow',
+                    fillOpacity: 0.7
+                };
+            }
+        }).addTo(miniMap);
+
+        miniMap.fitBounds(selectedHexLayer.getBounds());
+    } else {
+        console.error('No matching feature found for GEOID:', geoid);
     }
 }
 
