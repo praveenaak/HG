@@ -1,0 +1,34 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.top, .bottom {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.box {
+    flex: 1;
+    border: 1px solid black;
+    padding: 20px;
+    margin: 10px;
+    text-align: center;
+}
+
+.bottom .box:last-child {
+    margin-right: 0;
+}
