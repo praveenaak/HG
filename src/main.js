@@ -6,19 +6,80 @@ var neighborsMap;
 var jsonData; 
 var hexMap; 
 var choroplethMap;
+var selectedcolor;
+// Global variables to store the actual min and max values
+var actualMinPollutantValue = Number.POSITIVE_INFINITY;
+var actualMaxPollutantValue = Number.NEGATIVE_INFINITY;
 
-// Function to determine the color for a feature based on the choropleth scale
+var selectedHexLayers = [];
+
+function createLegend(minValue, maxValue) {
+    // Check if the legend already exists, and if so, remove it
+    if (window.legendControl) {
+        choroplethMap.removeControl(window.legendControl);
+    }
+
+    // Create legend
+    var legendControl = L.control({ position: 'bottomright' });
+
+    legendControl.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'info legend');
+
+        // Format the min and max values to two decimal places
+        var formattedMinValue = minValue.toFixed(2);
+        var formattedMaxValue = maxValue.toFixed(2);
+
+        // Get the colors corresponding to the min and max values
+        var colorScale = createColorScale(); // Assumes you have a color scale function
+        var minColor = colorScale(normalize(minValue, minValue, maxValue));
+        var maxColor = colorScale(normalize(maxValue, minValue, maxValue));
+
+        // Create a gradient for the legend
+        var gradientCSS = 'background: linear-gradient(to right, ' + minColor + ', ' + maxColor + ');';
+
+        // Create a div for the gradient legend
+        var gradientDiv = '<div style="width: 100%; height: 20px; ' + gradientCSS + '"></div>';
+
+        // Add HTML for the legend's range representation
+        div.innerHTML += gradientDiv + 
+            '<div>' + formattedMinValue + '&nbsp;&ndash;&nbsp;' + formattedMaxValue + '</div>';  // This creates the range display
+
+        return div;
+    };
+
+    // Add the new legend to the map
+    legendControl.addTo(choroplethMap);
+
+    // Store the legend control in a global variable so we can remove it later
+    window.legendControl = legendControl;
+}
+
+function calculateActualMinMaxValues(features) {
+    console.log('Features received:', features);  // Check if features are received correctly
+
+    features.forEach((feature) => {
+        var pollutantType = document.getElementById('pollutant-selector').value;
+        var pollutantValue = feature.properties[pollutantType.toUpperCase()];
+        console.log('Pollutant Value:', pollutantValue);  // Check the actual pollutant values being processed
+
+        if (pollutantValue < actualMinPollutantValue) actualMinPollutantValue = pollutantValue;
+        if (pollutantValue > actualMaxPollutantValue) actualMaxPollutantValue = pollutantValue;
+    });
+
+    console.log('Actual Min:', actualMinPollutantValue);  // After processing, what are the min and max values?
+    console.log('Actual Max:', actualMaxPollutantValue);
+}
+
+// Adjusted function to use the actual min and max values
 function getColorForFeature(feature) {
     var pollutantSelector = document.getElementById('pollutant-selector');
     var pollutantType = pollutantSelector.value; 
-    var value = feature.properties[pollutantType.toUpperCase()]; // The actual value for this feature
+    var value = feature.properties[pollutantType.toUpperCase()];
 
-    // Assume you have a global or otherwise accessible set of your min and max values for the pollutant
-    var minPollutantValue = Number.POSITIVE_INFINITY;
-    var maxPollutantValue = Number.NEGATIVE_INFINITY;
-
-    return getColor(value, minPollutantValue, maxPollutantValue); // This function should already be defined in your code
+    // Using the actual min and max values for the color calculation
+    return getColor(value, actualMinPollutantValue, actualMaxPollutantValue);
 }
+
 
 // Function to normalize data values into a 0-1 range
 function normalize(value, min, max) {
@@ -52,9 +113,6 @@ function drawHexMap() {
     });
     document.getElementById('hex-map').style.backgroundColor = 'transparent';
 
-
-    document.getElementById('hex-map').style.backgroundColor = 'transparent';
-
     // Fetch the hexagon GeoJSON data
     fetch('../data/hexagons.geojson')
         .then(response => response.json())
@@ -69,34 +127,17 @@ function drawHexMap() {
                 };
             }
 
-            function highlightStyle(feature) {
-                return {
-                    fillColor: 'yellow',
-                    weight: 0.5,
-                    color: '#666',
-                    dashArray: '',
-                    fillOpacity: 0.7
-                };
-            }
-
-            // Create a GeoJSON layer and add it to the map
             hexLayerGroup = L.geoJson(data, {
                 style: defaultStyle,
                 onEachFeature: function(feature, layer) {
                     layer.on('click', function() {
-                        if (selectedHexLayer) {
-                            hexLayerGroup.resetStyle(selectedHexLayer);
-                        }
-
-                        layer.setStyle(highlightStyle(feature));
-
-                        // Save the clicked layer as the selected layer for the next click event
-                        selectedHexLayer = layer;
-
-                        // Highlight the corresponding area on the choropleth map and display it in the third box
                         var geoid = feature.properties.GEOID;
-                        highlightCorrespondingChoropleth(geoid);
-                        displaySelectedInThirdBox(geoid);
+                    
+                        // Call the common update function
+                        console.log('Updating from hexmap with GEOID:', geoid);
+                        updateAllMaps(geoid);
+                        console.log('Updated from hexmap with GEOID:', geoid);
+                        
                     });
                 }
             }).addTo(hexMap);
@@ -105,6 +146,7 @@ function drawHexMap() {
         })
         .catch(error => console.error('Error loading hexagon GeoJSON data:', error));
 }
+
 
 function drawChoroplethMap() {
     if (choroplethMap) {
@@ -128,7 +170,6 @@ function drawChoroplethMap() {
         return response.json();
     })
     .then(data => {
-        // Use 'data' directly. Remove references to 'jsonData'.
         if (!choroplethMap) { // Just check if 'map' is initialized, as 'data' is now in scope
             console.error('Map has not been initialized.');
             return;
@@ -155,18 +196,20 @@ function drawChoroplethMap() {
             if (val > maxPollutantValue) maxPollutantValue = val;
         });
 
+        createLegend(minPollutantValue, maxPollutantValue);
+
+
         // 2. Apply the color based on each feature's value
         function style(feature) {
             var value = feature.properties[pollutantType.toUpperCase()]; // The actual value for this feature
 
             // Get color based on the value, using the scale
             var color = getColor(value, minPollutantValue, maxPollutantValue);
-
             return {
                 color: 'white', // Border color for the choropleth shapes
                 fillColor: color, // Fill color based on the feature's specific value
                 fillOpacity: 0.7,
-                weight: 2 // Border thickness
+                weight: 0.5 // Border thickness
             };
         }
 
@@ -174,8 +217,12 @@ function drawChoroplethMap() {
         choroplethLayerGroup = L.geoJson(data, {
             style: style,
             onEachFeature: function(feature, layer) {
-                // Customize the popup content
-                layer.bindPopup(feature.properties.NAMELSAD + '<br>' + pollutantType + ': ' + feature.properties[pollutantType.toUpperCase()]);
+                layer.on('click', function(e) {
+                    var geoid = feature.properties.GEOID;                
+                    console.log('Updating from choropleth map with GEOID:', geoid);
+                    updateAllMaps(geoid);
+                    console.log('Updated from choropleth map with GEOID:', geoid);
+                });
             }
         }).addTo(choroplethMap);
     })
@@ -184,6 +231,32 @@ function drawChoroplethMap() {
     });
 }
 
+function highlightHex(geoid) {
+    if (!hexLayerGroup) {
+        console.error("Hex layer group is not initialized.");
+        return;
+    }
+
+    // New logic: We're not going to loop through every layer this time
+    var layerToHighlight = null;
+    hexLayerGroup.eachLayer(function(layer) {
+        if (layer.feature.properties.GEOID === geoid) {
+            layerToHighlight = layer;
+        }
+    });
+
+    if (layerToHighlight) {
+        // Apply the highlighted style to the new layer
+        layerToHighlight.setStyle({ fillColor: 'yellow', weight: 0.5, color: '#666', dashArray: '', fillOpacity: 0.7 });
+
+        // Add the newly highlighted layer to the array (if not already present)
+        if (!selectedHexLayers.includes(layerToHighlight)) {
+            selectedHexLayers.push(layerToHighlight);
+        }
+    }
+}
+
+// Function to highlight the corresponding area in the choropleth map
 function highlightCorrespondingChoropleth(geoid) {
     if (!choroplethLayerGroup) {
         console.error("Choropleth layer group is not initialized.");
@@ -195,7 +268,6 @@ function highlightCorrespondingChoropleth(geoid) {
     choroplethLayerGroup.eachLayer(function(layer) {
         if (layer.feature.properties.GEOID === geoid) {
             found = true;
-            console.log("Matching layer found, applying highlight.");
             layer.setStyle({
                 weight: 5,
                 color: '#666',
@@ -207,17 +279,18 @@ function highlightCorrespondingChoropleth(geoid) {
                 layer.bringToFront();
             }
         } else {
-            choroplethLayerGroup.resetStyle(layer);
+            choroplethLayerGroup.resetStyle(layer); // Reset style for non-matching features
         }
     });
 
     if (!found) {
         console.log("No matching layer found for GEOID:", geoid);
     }
-
 }
 
 function displaySelectedInThirdBox(geoid) {
+
+    console.log("inside displaySelectedInThirdBox")
     var correspondingFeature;
     choroplethLayerGroup.eachLayer(function(layer) {
         if (layer.feature.properties.GEOID === geoid) {
@@ -262,10 +335,10 @@ function displaySelectedInThirdBox(geoid) {
         selectedHexLayer = L.geoJson(correspondingFeature, {
             style: function() {
                 return {
-                    color: featureColor,  // Use the same color as on the choropleth map
+                    color: selectedcolor,  // Use the same color as on the choropleth map
                     weight: 2,
                     opacity: 1,
-                    fillColor: featureColor,  // Use the same color as on the choropleth map
+                    fillColor: selectedcolor,  // Use the same color as on the choropleth map
                     fillOpacity: 0.7
                 };
             }
@@ -273,6 +346,7 @@ function displaySelectedInThirdBox(geoid) {
 
         // Fit the map bounds to the selected feature
         miniMap.fitBounds(selectedHexLayer.getBounds());
+        console.log(" displaySelectedInThirdBox done")
 
         displayFeaturePropertiesInTable(correspondingFeature.properties);
         displaySelectedWithNeighbors(correspondingFeature.properties.GEOID);
@@ -285,7 +359,7 @@ function displaySelectedInThirdBox(geoid) {
 
 // New function: Builds a table and populates it with the feature's properties
 function displayFeaturePropertiesInTable(properties) {
-    
+    console.log(" inside displayFeaturePropertiesInTable ")
     // Create a new table element
     var table = document.createElement('table');
     
@@ -314,7 +388,9 @@ function displayFeaturePropertiesInTable(properties) {
 }
 
 function displaySelectedWithNeighbors(geoid) {
-    // Initialize the neighbors map if it hasn't been already
+    console.log("Starting displaySelectedWithNeighbors");
+
+    // Initialize the neighborsMap if it hasn't been already
     if (!neighborsMap) {
         neighborsMap = L.map('bottom-second-box', {
             center: [41.6032, -73.0877], // Coordinates for Connecticut
@@ -326,69 +402,92 @@ function displaySelectedWithNeighbors(geoid) {
         document.getElementById('bottom-second-box').style.backgroundColor = 'transparent';
     }
 
-    var selectedFeature;
-    var neighbors = [];
+    // Variables for selected feature and neighbors
+    let selectedFeature = null;
+    const neighbors = [];
 
-    // Find the selected feature and its neighbors
+    // First pass: Identify the selected feature
     choroplethLayerGroup.eachLayer(function(layer) {
         if (layer.feature.properties.GEOID === geoid) {
             selectedFeature = layer.feature;
         }
     });
 
-    if (selectedFeature) {
-        var layers = [];  // Array to hold your Leaflet layers
-
-        // Using Turf, find features that share a boundary with the selected one
-        choroplethLayerGroup.eachLayer(function(layer) {
-            if (turf.booleanIntersects(selectedFeature, layer.feature)) {
-                neighbors.push(layer.feature);
-            }
-        });
-
-        // Clear existing layers on the neighbors map
-        neighborsMap.eachLayer(function(layer) {
-            neighborsMap.removeLayer(layer);
-        });
-
-        // Determine the color for the selected feature based on its value from the choropleth map
-        var selectedFeatureColor = getColorForFeature(selectedFeature);
-
-        // Highlight the selected feature and add it to the layers array
-        var selectedLayer = L.geoJSON(selectedFeature, {
-            style: {
-                color: selectedFeatureColor, // Use the color based on the choropleth scale
-                weight: 2,
-                opacity: 1,
-                fillColor: selectedFeatureColor, // Use the color based on the choropleth scale
-                fillOpacity: 0.7
-            }
-        }).addTo(neighborsMap);
-        layers.push(selectedLayer);  // Add the new layer to your array
-
-        // Display the neighbors and add them to the layers array
-        neighbors.forEach(function(neighborFeature) {
-            var neighborColor = getColorForFeature(neighborFeature); // Get color for this neighbor
-
-            var neighborLayer = L.geoJSON(neighborFeature, {
-                style: {
-                    color: neighborColor, // Color based on the choropleth scale
-                    weight: 1,
-                    opacity: 0.7,
-                    fillColor: neighborColor, // Color based on the choropleth scale
-                    fillOpacity: 0.5
-                }
-            }).addTo(neighborsMap);
-            layers.push(neighborLayer);  // Add the new layer to your array
-        });
-
-        // Adjust the view to show all relevant features
-        var group = new L.featureGroup(layers);  // Use your layers array here
-        neighborsMap.fitBounds(group.getBounds());
-    } else {
+    if (!selectedFeature) {
         console.error('No matching feature found for GEOID:', geoid);
+        return; // Exit if not found
     }
+
+    // Second pass: Accumulate neighboring features
+    choroplethLayerGroup.eachLayer(function(layer) {
+        if (turf.booleanIntersects(selectedFeature, layer.feature)) {
+            neighbors.push(layer.feature);
+        }
+    });
+
+    // Prepare the layers array, starting with the selected feature
+    const layers = [];
+
+    const selectedFeatureColor = getColorForFeature(selectedFeature);
+    const selectedLayer = L.geoJSON(selectedFeature, {
+        style: {
+            color: selectedcolor,
+            weight: 2,
+            opacity: 1,
+            fillColor: selectedcolor,
+            fillOpacity: 0.7
+        }
+    });
+    layers.push(selectedLayer); // add selected feature layer
+
+    // Process neighbors
+    neighbors.forEach(function(neighborFeature) {
+        const neighborColor = getColorForFeature(neighborFeature); 
+        const neighborLayer = L.geoJSON(neighborFeature, {
+            style: {
+                color: neighborColor,
+                weight: 1,
+                opacity: 0.7,
+                fillColor: neighborColor,
+                fillOpacity: 0.5
+            }
+        });
+        layers.push(neighborLayer); // add neighbor layers
+    });
+
+    // At this point, all necessary layers are in the 'layers' array.
+
+    // Clear existing layers on the neighbors map
+    neighborsMap.eachLayer(function(layer) {
+        neighborsMap.removeLayer(layer);
+    });
+
+    // Create a group from the layers and add it to the map.
+    const group = L.featureGroup(layers).addTo(neighborsMap);
+
+    // Adjust the view to show all relevant features
+    neighborsMap.fitBounds(group.getBounds());
+
+    console.log("Completed displaySelectedWithNeighbors");
 }
+
+
+function updateAllMaps(geoid) {
+    console.log("inside updateAllMaps");
+    // Highlight the hex map based on the GEOID
+    highlightHex(geoid);
+    console.log("highlightHex done");
+
+    // Highlight the choropleth map based on the GEOID
+    highlightCorrespondingChoropleth(geoid);
+    console.log("highlightCorrespondingChoropleth done");
+
+    // Display the selected feature in the third box (if applicable in your UI)
+    displaySelectedInThirdBox(geoid);
+    console.log("displaySelectedInThirdBox done");
+
+}
+
 
 
 // Now, update your event listener for the dropdown change
