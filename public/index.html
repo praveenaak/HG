@@ -17,6 +17,14 @@
 
 <body>
     <div class="container">
+        <div id="control-widget" style="padding: 20px;"> <!-- You can style this div as needed -->
+            <label for="pollutant-selector">Select Pollutant:</label>
+            <select id="pollutant-selector">
+                <option value="oz">OZ</option>
+                <option value="pm25">PM 2.5</option>
+                <option value="pm10">PM 10</option>
+            </select>
+        </div>
         <div class="top">
             <div class="box" id="hex-map-box">
                 <div id="hex-map" style="width:100%; height:100%;"></div></div>

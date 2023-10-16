@@ -65,3 +65,15 @@ body {
 .bottom .box:last-child {
     margin-right: 0;
 }
+
+#control-widget {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000; /* Ensures the widget is above the map */
+}
+
+#pollutant-selector {
+    padding: 8px;
+    font-size: 13px;
+}
