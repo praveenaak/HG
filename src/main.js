@@ -7,11 +7,11 @@ var jsonData;
 var hexMap; 
 var choroplethMap;
 var selectedcolor;
-// Global variables to store the actual min and max values
 var actualMinPollutantValue = Number.POSITIVE_INFINITY;
 var actualMaxPollutantValue = Number.NEGATIVE_INFINITY;
 
 var selectedHexLayers = [];
+
 
 function createLegend(minValue, maxValue) {
     // Check if the legend already exists, and if so, remove it
@@ -59,6 +59,7 @@ function calculateActualMinMaxValues(features) {
 
     features.forEach((feature) => {
         var pollutantType = document.getElementById('pollutant-selector').value;
+        console.log(pollutantType)
         var pollutantValue = feature.properties[pollutantType.toUpperCase()];
         console.log('Pollutant Value:', pollutantValue);  // Check the actual pollutant values being processed
 
@@ -162,7 +163,7 @@ function drawChoroplethMap() {
     });
 
     // Here, we fetch the data again (or access the new pollutant data if already fetched)
-    fetch('../data/AQI_CT_imputed.geojson')
+    fetch('../data/svi-data.geojson')
     .then(response => {
         if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -184,6 +185,7 @@ function drawChoroplethMap() {
     
         // Get the selected pollutant from the dropdown
         var pollutantSelector = document.getElementById('pollutant-selector');
+        console.log(pollutantSelector.value)
         var pollutantType = pollutantSelector.value; 
     
         let minPollutantValue = Number.POSITIVE_INFINITY;
@@ -198,11 +200,9 @@ function drawChoroplethMap() {
 
         createLegend(minPollutantValue, maxPollutantValue);
 
-
-        // 2. Apply the color based on each feature's value
         function style(feature) {
-            var value = feature.properties[pollutantType.toUpperCase()]; // The actual value for this feature
 
+            var value = feature.properties[pollutantType.toUpperCase()]; // The actual value for this feature
             // Get color based on the value, using the scale
             var color = getColor(value, minPollutantValue, maxPollutantValue);
             return {
@@ -349,7 +349,7 @@ function displaySelectedInThirdBox(geoid) {
         console.log(" displaySelectedInThirdBox done")
 
         displayFeaturePropertiesInTable(correspondingFeature.properties);
-        displaySelectedWithNeighbors(correspondingFeature.properties.GEOID);
+        //displaySelectedWithNeighbors(correspondingFeature.properties.GEOID);
     } else {
         console.error('No matching feature found for GEOID:', geoid);
     }
@@ -357,35 +357,55 @@ function displaySelectedInThirdBox(geoid) {
 
 
 
-// New function: Builds a table and populates it with the feature's properties
 function displayFeaturePropertiesInTable(properties) {
-    console.log(" inside displayFeaturePropertiesInTable ")
     // Create a new table element
     var table = document.createElement('table');
     
     // Add a header to the table
     var thead = table.createTHead();
     var headerRow = thead.insertRow();
-    var th1 = headerRow.insertCell();
-    th1.textContent = 'Property';
-    var th2 = headerRow.insertCell();
-    th2.textContent = 'Value';
+    
+    // Create header columns
+    var headers = ['Property', 'Value', 'Property', 'Value'];
+    for (var header of headers) {
+        var th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+    }
 
-    // Add the data to the table
+    // Add the data to the table in the new format
     var tbody = table.createTBody();
-    Object.keys(properties).forEach(function(key) {
+    var keys = Object.keys(properties);
+    for (var i = 0; i < keys.length; i += 2) {
         var row = tbody.insertRow();
+        
+        // First property and value
         var cell1 = row.insertCell();
+        cell1.textContent = keys[i];
+        cell1.className = "property-name"; // Add a class to the property cell
         var cell2 = row.insertCell();
-        cell1.textContent = key;
-        cell2.textContent = properties[key];
-    });
+        cell2.textContent = properties[keys[i]];
+
+        if (keys[i + 1]) {
+            // Second property and value, if it exists
+            var cell3 = row.insertCell();
+            cell3.textContent = keys[i + 1];
+            cell3.className = "property-name-2";
+            var cell4 = row.insertCell();
+            cell4.textContent = properties[keys[i + 1]];
+        } else {
+            // If there is no second property, fill in with empty cells
+            row.insertCell();
+            row.insertCell();
+        }
+    }
 
     // Get the container for the table, clear it, and add the new table
     var container = document.getElementById('properties-table');
     container.innerHTML = '';  // Clear existing contents
     container.appendChild(table);
 }
+
 
 function displaySelectedWithNeighbors(geoid) {
     console.log("Starting displaySelectedWithNeighbors");

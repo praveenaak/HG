@@ -58,23 +58,44 @@ body {
     left: 0;
     right: 0;
 }
-
-#properties-table table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px; /* adjust as needed */
+/* Container holding the table, not the table itself */
+#properties-table {
+    height: 400px; /* or any suitable value */
+    overflow-y: auto; /* enables vertical scrolling */
+    width: 100%; /* makes sure the container fills the width */
 }
 
-#properties-table th, #properties-table td {
-    border: 1px solid #ddd; /* adjust color as needed */
-    padding: 8px; /* adjust as needed */
+/* Styles for the table element */
+#properties-table table {
+    width: 100%; /* full width */
+    border-collapse: collapse; /* use 'separate' if you need cell borders to be distinct */
+    border-spacing: 0;
+    font-size: 10px; /* adjust as necessary for readability and space */
+    /* other styles... */
+}
+
+/* other styles remain unchanged */
+
+/* Styles for the cells */
+#properties-table th, 
+#properties-table td {
+    border: 1px solid #ddd;
+    padding: 12px; 
+    text-align: left; 
+    font-size: 10px; /* slightly larger than before, adjust as needed */
 }
 
 #properties-table th {
-    background-color: #f2f2f2; /* adjust color as needed */
-    color: black; /* adjust color as needed */
+    background-color: #4CAF50; 
+    color: white;
+    font-weight: bold;
+    font-size: 10px; /* consistency with other table text, adjust as needed */
 }
 
+/* Style for property names in the table */
+.property-name, .property-name-2 {
+    font-weight: bold; /* Makes the property names bold */
+}
 
 .bottom .box:last-child {
     margin-right: 0;
