@@ -16,17 +16,17 @@
 <body>
     <div class="container">
         <div id="control-widget" style="padding: 20px;"> <!-- You can style this div as needed -->
-            <label for="pollutant-selector">Select Pollutant:</label>
+            <label for="pollutant-selector">Select Index:</label>
             <select id="pollutant-selector">
-                <option value="oz">OZ</option>
-                <option value="pm25">PM 2.5</option>
-                <option value="pm10">PM 10</option>
+                <option value="OZ">OZ</option>
+                <option value="PM25">PM 2.5</option>
+                <option value="PM10">PM 10</option>
                 <option value="ten_k_gallons">Water Price</option>
+                <option value="pred3_e">Heat</option>
             </select>
         </div>
         <div class="top">
-            <div class="box" id="hex-map-box">
-                <div id="hex-map" style="width:100%; height:100%;"></div></div>
+            <div class="box" id="hex-map-box"><div id="hex-map" style="width:100%; height:100%;"></div></div>
             <div class="box"><div id="map"></div></div>
 
         </div>
@@ -34,9 +34,7 @@
             <div class="box">
                 <div id="third-box" style="width:100%; height:100%;"></div>
             </div>
-            <div class="box" id="table-box">
-                <div id="properties-table"></div>
-            </div>
+            <div class="box" id="feature-properties-table"></div>
 
         </div>
     </div>

@@ -1,4 +1,3 @@
-// Global variables for the layer groups
 var hexLayerGroup, choroplethLayerGroup;
 var selectedHexLayer;
 var miniMap; 
@@ -29,13 +28,21 @@ function createLegend(minValue, maxValue) {
         var formattedMinValue = minValue.toFixed(2);
         var formattedMaxValue = maxValue.toFixed(2);
 
-        // Get the colors corresponding to the min and max values
-        var colorScale = createColorScale(); // Assumes you have a color scale function
-        var minColor = colorScale(normalize(minValue, minValue, maxValue));
-        var maxColor = colorScale(normalize(maxValue, minValue, maxValue));
+        // Assuming you have a color scale function
+        var colorScale = createColorScale();
 
-        // Create a gradient for the legend
-        var gradientCSS = 'background: linear-gradient(to right, ' + minColor + ', ' + maxColor + ');';
+        // Define the number of gradient stops you want in your legend
+        var gradientStops = 5;  // Choose the number of stops based on your preference
+
+        // Create an array of color stops equally spread across the range
+        var colors = [];
+        for (var i = 0; i < gradientStops; i++) {
+            var value = minValue + (i / (gradientStops - 1)) * (maxValue - minValue);
+            colors.push(colorScale(normalize(value, minValue, maxValue)));
+        }
+
+        // Generate the CSS for the gradient with multiple color stops
+        var gradientCSS = 'background: linear-gradient(to right, ' + colors.join(', ') + ');';
 
         // Create a div for the gradient legend
         var gradientDiv = '<div style="width: 100%; height: 20px; ' + gradientCSS + '"></div>';
@@ -46,7 +53,6 @@ function createLegend(minValue, maxValue) {
 
         return div;
     };
-
     // Add the new legend to the map
     legendControl.addTo(choroplethMap);
 
@@ -54,32 +60,7 @@ function createLegend(minValue, maxValue) {
     window.legendControl = legendControl;
 }
 
-function calculateActualMinMaxValues(features) {
-    console.log('Features received:', features);  // Check if features are received correctly
 
-    features.forEach((feature) => {
-        var pollutantType = document.getElementById('pollutant-selector').value;
-        console.log(pollutantType)
-        var pollutantValue = feature.properties[pollutantType.toUpperCase()];
-        console.log('Pollutant Value:', pollutantValue);  // Check the actual pollutant values being processed
-
-        if (pollutantValue < actualMinPollutantValue) actualMinPollutantValue = pollutantValue;
-        if (pollutantValue > actualMaxPollutantValue) actualMaxPollutantValue = pollutantValue;
-    });
-
-    console.log('Actual Min:', actualMinPollutantValue);  // After processing, what are the min and max values?
-    console.log('Actual Max:', actualMaxPollutantValue);
-}
-
-// Adjusted function to use the actual min and max values
-function getColorForFeature(feature) {
-    var pollutantSelector = document.getElementById('pollutant-selector');
-    var pollutantType = pollutantSelector.value; 
-    var value = feature.properties[pollutantType.toUpperCase()];
-
-    // Using the actual min and max values for the color calculation
-    return getColor(value, actualMinPollutantValue, actualMaxPollutantValue);
-}
 
 
 // Function to normalize data values into a 0-1 range
@@ -106,8 +87,8 @@ function getColor(value, min, max) {
 // Function to initialize the hexagon map
 function drawHexMap() {
     hexMap = L.map('hex-map', { // make sure 'hex-map' is the correct container ID
-        center: [41.6032, -73.0877], // Coordinates for Connecticut
-        zoom: 10,
+        //center: [41.6032, -73.0877],
+        zoom: 13,
         layers: [],
         zoomControl: false,
         attributionControl: false,
@@ -120,10 +101,10 @@ function drawHexMap() {
         .then(data => {
             function defaultStyle(feature) {
                 return {
-                    fillColor: 'blue',
+                    fillColor: 'white',
                     weight: 0.3,
                     opacity: 1,
-                    color: 'white',
+                    color: 'black',
                     fillOpacity: 0.7
                 };
             }
@@ -151,10 +132,9 @@ function drawHexMap() {
 
 function drawChoroplethMap() {
     if (choroplethMap) {
-        choroplethMap.remove(); // This will clear the existing map
+        choroplethMap.remove(); 
     }
 
-    // Now, we recreate the choroplethMap
     choroplethMap = L.map('map', { 
         center: [33.44, -112.07], // Coordinates for Phoenix
         zoom: 5,
@@ -162,7 +142,6 @@ function drawChoroplethMap() {
         attributionControl: false,
     });
 
-    // Here, we fetch the data again (or access the new pollutant data if already fetched)
     fetch('../data/svi-data.geojson')
     .then(response => {
         if (!response.ok) {
@@ -176,24 +155,20 @@ function drawChoroplethMap() {
             return;
         }
     
-        // Clear any existing layers
         choroplethMap.eachLayer(layer => {
             if (layer instanceof L.GeoJSON) { // Check if layer is a GeoJSON layer, to avoid removing tile layers
                 choroplethMap.removeLayer(layer);
             }
         });
-    
-        // Get the selected pollutant from the dropdown
+        document.getElementById('map').style.backgroundColor = 'transparent';
         var pollutantSelector = document.getElementById('pollutant-selector');
         console.log(pollutantSelector.value)
         var pollutantType = pollutantSelector.value; 
     
         let minPollutantValue = Number.POSITIVE_INFINITY;
         let maxPollutantValue = Number.NEGATIVE_INFINITY;
-
-        // Loop through all features to find the actual minimum and maximum values
         data.features.forEach((feature) => {
-            let val = feature.properties[pollutantType.toUpperCase()];
+            let val = feature.properties[pollutantType];
             if (val < minPollutantValue) minPollutantValue = val;
             if (val > maxPollutantValue) maxPollutantValue = val;
         });
@@ -202,18 +177,16 @@ function drawChoroplethMap() {
 
         function style(feature) {
 
-            var value = feature.properties[pollutantType.toUpperCase()]; // The actual value for this feature
-            // Get color based on the value, using the scale
-            var color = getColor(value, minPollutantValue, maxPollutantValue);
+            var value = feature.properties[pollutantType]; // The actual value for this feature
+            selectedcolor = getColor(value, minPollutantValue, maxPollutantValue);
             return {
                 color: 'white', // Border color for the choropleth shapes
-                fillColor: color, // Fill color based on the feature's specific value
+                fillColor: selectedcolor, // Fill color based on the feature's specific value
                 fillOpacity: 0.7,
                 weight: 0.5 // Border thickness
             };
         }
 
-        // Create a GeoJSON layer and add it to the map
         choroplethLayerGroup = L.geoJson(data, {
             style: style,
             onEachFeature: function(feature, layer) {
@@ -246,8 +219,7 @@ function highlightHex(geoid) {
     });
 
     if (layerToHighlight) {
-        // Apply the highlighted style to the new layer
-        layerToHighlight.setStyle({ fillColor: 'yellow', weight: 0.5, color: '#666', dashArray: '', fillOpacity: 0.7 });
+        layerToHighlight.setStyle({ fillColor: 'red', weight: 0.5, color: '#666', dashArray: '', fillOpacity: 0.7 });
 
         // Add the newly highlighted layer to the array (if not already present)
         if (!selectedHexLayers.includes(layerToHighlight)) {
@@ -256,7 +228,6 @@ function highlightHex(geoid) {
     }
 }
 
-// Function to highlight the corresponding area in the choropleth map
 function highlightCorrespondingChoropleth(geoid) {
     if (!choroplethLayerGroup) {
         console.error("Choropleth layer group is not initialized.");
@@ -270,7 +241,7 @@ function highlightCorrespondingChoropleth(geoid) {
             found = true;
             layer.setStyle({
                 weight: 5,
-                color: '#666',
+                color: '#FF0000',
                 dashArray: '',
                 fillOpacity: 0.7
             });
@@ -301,15 +272,15 @@ function displaySelectedInThirdBox(geoid) {
     if (correspondingFeature) {
         // Calculate the geographical center (centroid) of the selected feature
         var centroid = turf.centroid(correspondingFeature);
-        var centerCoordinates = centroid.geometry.coordinates.reverse(); // Turf uses [long, lat], Leaflet uses [lat, long]
+        var centerCoordinates = centroid.geometry.coordinates.reverse(); 
 
         if (!miniMap) {
             // Initialize the miniMap if it hasn't been already
             miniMap = L.map('third-box', {
                 center: centerCoordinates, // use the centroid coordinates here
-                zoom: 10,
+                zoom: 5,
                 layers: [],
-                zoomControl: false,
+                zoomControl: true,
                 attributionControl: false,
             });
 
@@ -321,7 +292,6 @@ function displaySelectedInThirdBox(geoid) {
 
             document.getElementById('third-box').style.backgroundColor = 'transparent';
         } else {
-            // If miniMap already exists, just pan to the new center
             miniMap.panTo(centerCoordinates);
         }
 
@@ -329,8 +299,6 @@ function displaySelectedInThirdBox(geoid) {
             miniMap.removeLayer(selectedHexLayer);
         }
 
-        // Get the color for the selected feature based on its value from the choropleth map
-        var featureColor = getColorForFeature(correspondingFeature);
 
         selectedHexLayer = L.geoJson(correspondingFeature, {
             style: function() {
@@ -360,51 +328,41 @@ function displaySelectedInThirdBox(geoid) {
 function displayFeaturePropertiesInTable(properties) {
     // Create a new table element
     var table = document.createElement('table');
-    
+    table.className = 'feature-properties-table';
     // Add a header to the table
     var thead = table.createTHead();
     var headerRow = thead.insertRow();
-    
-    // Create header columns
-    var headers = ['Property', 'Value', 'Property', 'Value'];
+
+    // Create header columns for a more traditional table layout
+    var headers = ['Property', 'Value'];
     for (var header of headers) {
         var th = document.createElement('th');
         th.textContent = header;
         headerRow.appendChild(th);
     }
 
-    // Add the data to the table in the new format
+    // Add the data to the table
     var tbody = table.createTBody();
     var keys = Object.keys(properties);
-    for (var i = 0; i < keys.length; i += 2) {
+    for (var key of keys) {
         var row = tbody.insertRow();
         
-        // First property and value
         var cell1 = row.insertCell();
-        cell1.textContent = keys[i];
+        cell1.textContent = key;
         cell1.className = "property-name"; // Add a class to the property cell
-        var cell2 = row.insertCell();
-        cell2.textContent = properties[keys[i]];
 
-        if (keys[i + 1]) {
-            // Second property and value, if it exists
-            var cell3 = row.insertCell();
-            cell3.textContent = keys[i + 1];
-            cell3.className = "property-name-2";
-            var cell4 = row.insertCell();
-            cell4.textContent = properties[keys[i + 1]];
-        } else {
-            // If there is no second property, fill in with empty cells
-            row.insertCell();
-            row.insertCell();
-        }
+        var cell2 = row.insertCell();
+        cell2.textContent = properties[key];
     }
 
-    // Get the container for the table, clear it, and add the new table
-    var container = document.getElementById('properties-table');
-    container.innerHTML = '';  // Clear existing contents
+    // Assuming you want to add this table to a container in your HTML
+    var container = document.getElementById('feature-properties-table');
+    // Clear previous table
+    container.innerHTML = '';
+    // Add the new table to the container
     container.appendChild(table);
 }
+
 
 
 function displaySelectedWithNeighbors(geoid) {
@@ -448,7 +406,6 @@ function displaySelectedWithNeighbors(geoid) {
     // Prepare the layers array, starting with the selected feature
     const layers = [];
 
-    const selectedFeatureColor = getColorForFeature(selectedFeature);
     const selectedLayer = L.geoJSON(selectedFeature, {
         style: {
             color: selectedcolor,
@@ -462,13 +419,12 @@ function displaySelectedWithNeighbors(geoid) {
 
     // Process neighbors
     neighbors.forEach(function(neighborFeature) {
-        const neighborColor = getColorForFeature(neighborFeature); 
         const neighborLayer = L.geoJSON(neighborFeature, {
             style: {
-                color: neighborColor,
+                color: 'black',
                 weight: 1,
                 opacity: 0.7,
-                fillColor: neighborColor,
+                fillColor: 'black',
                 fillOpacity: 0.5
             }
         });
@@ -515,6 +471,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var pollutantSelector = document.getElementById('pollutant-selector');
     pollutantSelector.addEventListener('change', function() {
-        drawChoroplethMap(); // This should now fully refresh the map with new data
+        drawChoroplethMap(); 
+        if (miniMap) {
+            miniMap.remove(); 
+            miniMap = null;
+        }
+        var container = document.getElementById('feature-properties-table');
+        if (container) {
+            container.innerHTML = ''; 
+        }
     });
 });
