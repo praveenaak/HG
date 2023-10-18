@@ -509,8 +509,6 @@ function updateAllMaps(geoid) {
 }
 
 
-
-// Now, update your event listener for the dropdown change
 document.addEventListener('DOMContentLoaded', function() {
     drawChoroplethMap(); // Initial draw
     drawHexMap();
