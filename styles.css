@@ -27,15 +27,18 @@ body {
 }
 
 .box {
-    flex-grow: 1;  /* Allows the box to grow and take up extra space */
+    flex: 0 0 auto;  /* Don't grow, don't shrink, start at auto width based on content */
+    width: calc(50% - 10px);  /* for two boxes in a row, adjust if you have a different number */
     border: 1px solid black;
-    padding: 100px;  /* Adjusted padding */
-    margin: 5px;  /* Adjusted margin */
-    display: flex;  /* Makes each box a flex container for vertical alignment */
-    justify-content: center; /* Centers content horizontally */
-    align-items: center; /* Centers content vertically */
-    position: relative; /* Keeps the map positioned within the box */
+    padding: 100px;
+    margin: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+/* add a scrollbar if content overflows */
 }
+
 .info.legend {
     padding: 6px 8px;
     font: 14px/16px Arial, Helvetica, sans-serif;
@@ -61,10 +64,17 @@ body {
 }
 
 
-.feature-properties-table,
-.feature-properties-table th,
+.feature-properties-table {
+    width: 100%; /* Makes sure your table occupies the entire available width */
+    border-collapse: collapse; /* Ensures borders on `td` and `th` elements join each other */
+}
+
+.feature-properties-table th, 
 .feature-properties-table td {
-    font-size: 6px; /* or whatever size you prefer */
+    font-size: 8px;
+    border: 1px solid black; /* Adds border to your cells */
+    padding: 8px; /* Optional: Adds some padding inside cells */
+    text-align: left; /* Optional: Aligns text to the left */
 }
 
 .property-name, .property-name-2 {

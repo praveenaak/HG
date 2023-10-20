@@ -344,17 +344,17 @@ function displaySelectedInThirdBox(geoid) {
 }
 
 
-
 function displayFeaturePropertiesInTable(properties) {
     // Create a new table element
     var table = document.createElement('table');
     table.className = 'feature-properties-table';
+
     // Add a header to the table
     var thead = table.createTHead();
     var headerRow = thead.insertRow();
 
-    // Create header columns for a more traditional table layout
-    var headers = ['Property', 'Value'];
+    // Create double header columns
+    var headers = ['Property', 'Value', 'Property', 'Value'];
     for (var header of headers) {
         var th = document.createElement('th');
         th.textContent = header;
@@ -364,15 +364,33 @@ function displayFeaturePropertiesInTable(properties) {
     // Add the data to the table
     var tbody = table.createTBody();
     var keys = Object.keys(properties);
-    for (var key of keys) {
+    for (var i = 0; i < keys.length; i += 2) { // Increment by 2 since we are adding two properties at a time
         var row = tbody.insertRow();
         
+        // First property-value pair
         var cell1 = row.insertCell();
-        cell1.textContent = key;
-        cell1.className = "property-name"; // Add a class to the property cell
+        cell1.textContent = keys[i];
+        cell1.style.fontWeight = 'bold'; 
+        cell1.className = "property-name";
 
         var cell2 = row.insertCell();
-        cell2.textContent = properties[key];
+        cell2.textContent = properties[keys[i]];
+        
+        // Second property-value pair
+        // Check if there is a second property to display
+        if (i + 1 < keys.length) {
+            var cell3 = row.insertCell();
+            cell3.textContent = keys[i + 1];
+            cell3.className = "property-name";
+            cell3.style.fontWeight = 'bold';
+
+            var cell4 = row.insertCell();
+            cell4.textContent = properties[keys[i + 1]];
+        } else {
+            // If there is no second property, fill with empty cells
+            row.insertCell();
+            row.insertCell();
+        }
     }
 
     // Assuming you want to add this table to a container in your HTML
@@ -382,6 +400,7 @@ function displayFeaturePropertiesInTable(properties) {
     // Add the new table to the container
     container.appendChild(table);
 }
+
 
 
 
