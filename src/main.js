@@ -91,7 +91,7 @@ function drawHexMap() {
 
     hexMap = L.map('hex-map', {
         //center: [41.6032, -73.0877],
-        zoom: 13,
+        zoom: 17,
         layers: [],
         zoomControl: false,
         attributionControl: false,
@@ -157,7 +157,7 @@ function drawChoroplethMap() {
 
     choroplethMap = L.map('map', { 
         center: [33.44, -112.07], // Coordinates for Phoenix
-        zoom: 5,
+        zoom: 6,
         zoomControl: true,
         attributionControl: false,
     });

@@ -73,7 +73,7 @@ body {
 .feature-properties-table td {
     font-size: 8px;
     border: 1px solid black; /* Adds border to your cells */
-    padding: 8px; /* Optional: Adds some padding inside cells */
+    padding: 5px; /* Optional: Adds some padding inside cells */
     text-align: left; /* Optional: Aligns text to the left */
 }
 
