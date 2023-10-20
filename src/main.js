@@ -13,57 +13,42 @@ var selectedHexLayers = [];
 
 
 function createLegend(minValue, maxValue) {
-    // Check if the legend already exists, and if so, remove it
     if (window.legendControl) {
         choroplethMap.removeControl(window.legendControl);
     }
-
-    // Create legend
     var legendControl = L.control({ position: 'bottomright' });
 
     legendControl.onAdd = function (map) {
         var div = L.DomUtil.create('div', 'info legend');
-
-        // Format the min and max values to two decimal places
         var formattedMinValue = minValue.toFixed(2);
         var formattedMaxValue = maxValue.toFixed(2);
 
-        // Assuming you have a color scale function
         var colorScale = createColorScale();
+        var gradientStops = 5; 
 
-        // Define the number of gradient stops you want in your legend
-        var gradientStops = 5;  // Choose the number of stops based on your preference
-
-        // Create an array of color stops equally spread across the range
         var colors = [];
         for (var i = 0; i < gradientStops; i++) {
             var value = minValue + (i / (gradientStops - 1)) * (maxValue - minValue);
             colors.push(colorScale(normalize(value, minValue, maxValue)));
         }
 
-        // Generate the CSS for the gradient with multiple color stops
         var gradientCSS = 'background: linear-gradient(to right, ' + colors.join(', ') + ');';
-
-        // Create a div for the gradient legend
         var gradientDiv = '<div style="width: 100%; height: 20px; ' + gradientCSS + '"></div>';
 
-        // Add HTML for the legend's range representation
         div.innerHTML += gradientDiv + 
             '<div>' + formattedMinValue + '&nbsp;&ndash;&nbsp;' + formattedMaxValue + '</div>';  // This creates the range display
 
         return div;
     };
-    // Add the new legend to the map
-    legendControl.addTo(choroplethMap);
 
-    // Store the legend control in a global variable so we can remove it later
+    legendControl.addTo(choroplethMap);
     window.legendControl = legendControl;
 }
 
 
 
 
-// Function to normalize data values into a 0-1 range
+
 function normalize(value, min, max) {
     return (value - min) / (max - min);
 }
@@ -71,7 +56,7 @@ function normalize(value, min, max) {
 // Function to create a d3 color scale similar to 'viridis'
 function createColorScale() {
     var scale = d3.scaleSequential()
-        .domain([0, 1]) // Domain is normalized to 0-1 range
+        .domain([0, 1]) 
         .interpolator(d3.interpolateViridis); // Using Viridis color scheme
     return scale;
 }
@@ -116,15 +101,17 @@ function drawHexMap() {
                 if (val > maxPollutantValue) maxPollutantValue = val;
             });
 
+            createLegend(minPollutantValue, maxPollutantValue);
+
             function style(feature) {
 
-                var value = feature.properties[pollutantType]; // The actual value for this feature
+                var value = feature.properties[pollutantType]; 
                 selectedcolor = getColor(value, minPollutantValue, maxPollutantValue);
                 return {
-                    color: 'white', // Border color for the choropleth shapes
-                    fillColor: selectedcolor, // Fill color based on the feature's specific value
+                    color: 'black', 
+                    fillColor: selectedcolor, 
                     fillOpacity: 0.7,
-                    weight: 0.5 // Border thickness
+                    weight: 0.5 
                 };
             }
             
@@ -197,11 +184,11 @@ function drawChoroplethMap() {
 
         function style(feature) {
 
-            var value = feature.properties[pollutantType]; // The actual value for this feature
+            var value = feature.properties[pollutantType]; 
             selectedcolor = getColor(value, minPollutantValue, maxPollutantValue);
             return {
-                color: 'white', // Border color for the choropleth shapes
-                fillColor: selectedcolor, // Fill color based on the feature's specific value
+                color: 'black', // Border color for the choropleth shapes
+                fillColor: selectedcolor, 
                 fillOpacity: 0.7,
                 weight: 0.5 // Border thickness
             };
@@ -241,7 +228,6 @@ function highlightHex(geoid) {
     if (layerToHighlight) {
         layerToHighlight.setStyle({ fillColor: 'red', weight: 0.5, color: '#666', dashArray: '', fillOpacity: 0.7 });
 
-        // Add the newly highlighted layer to the array (if not already present)
         if (!selectedHexLayers.includes(layerToHighlight)) {
             selectedHexLayers.push(layerToHighlight);
         }
@@ -295,7 +281,6 @@ function displaySelectedInThirdBox(geoid) {
         var centerCoordinates = centroid.geometry.coordinates.reverse(); 
 
         if (!miniMap) {
-            // Initialize the miniMap if it hasn't been already
             miniMap = L.map('third-box', {
                 center: centerCoordinates, // use the centroid coordinates here
                 zoom: 5,
@@ -304,7 +289,6 @@ function displaySelectedInThirdBox(geoid) {
                 attributionControl: false,
             });
 
-            // Here we add a tile layer - this will be the base map
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -323,16 +307,16 @@ function displaySelectedInThirdBox(geoid) {
         selectedHexLayer = L.geoJson(correspondingFeature, {
             style: function() {
                 return {
-                    color: selectedcolor,  // Use the same color as on the choropleth map
+                    color: selectedcolor,  
                     weight: 2,
                     opacity: 1,
-                    fillColor: selectedcolor,  // Use the same color as on the choropleth map
+                    fillColor: selectedcolor,  
                     fillOpacity: 0.7
                 };
             }
         }).addTo(miniMap);
 
-        // Fit the map bounds to the selected feature
+
         miniMap.fitBounds(selectedHexLayer.getBounds());
         console.log(" displaySelectedInThirdBox done")
 
@@ -345,15 +329,11 @@ function displaySelectedInThirdBox(geoid) {
 
 
 function displayFeaturePropertiesInTable(properties) {
-    // Create a new table element
     var table = document.createElement('table');
     table.className = 'feature-properties-table';
-
-    // Add a header to the table
     var thead = table.createTHead();
     var headerRow = thead.insertRow();
 
-    // Create double header columns
     var headers = ['Property', 'Value', 'Property', 'Value'];
     for (var header of headers) {
         var th = document.createElement('th');
@@ -361,13 +341,11 @@ function displayFeaturePropertiesInTable(properties) {
         headerRow.appendChild(th);
     }
 
-    // Add the data to the table
     var tbody = table.createTBody();
     var keys = Object.keys(properties);
-    for (var i = 0; i < keys.length; i += 2) { // Increment by 2 since we are adding two properties at a time
+    for (var i = 0; i < keys.length; i += 2) { 
         var row = tbody.insertRow();
         
-        // First property-value pair
         var cell1 = row.insertCell();
         cell1.textContent = keys[i];
         cell1.style.fontWeight = 'bold'; 
@@ -376,8 +354,6 @@ function displayFeaturePropertiesInTable(properties) {
         var cell2 = row.insertCell();
         cell2.textContent = properties[keys[i]];
         
-        // Second property-value pair
-        // Check if there is a second property to display
         if (i + 1 < keys.length) {
             var cell3 = row.insertCell();
             cell3.textContent = keys[i + 1];
@@ -387,17 +363,13 @@ function displayFeaturePropertiesInTable(properties) {
             var cell4 = row.insertCell();
             cell4.textContent = properties[keys[i + 1]];
         } else {
-            // If there is no second property, fill with empty cells
             row.insertCell();
             row.insertCell();
         }
     }
 
-    // Assuming you want to add this table to a container in your HTML
     var container = document.getElementById('feature-properties-table');
-    // Clear previous table
     container.innerHTML = '';
-    // Add the new table to the container
     container.appendChild(table);
 }
 
@@ -407,10 +379,9 @@ function displayFeaturePropertiesInTable(properties) {
 function displaySelectedWithNeighbors(geoid) {
     console.log("Starting displaySelectedWithNeighbors");
 
-    // Initialize the neighborsMap if it hasn't been already
     if (!neighborsMap) {
         neighborsMap = L.map('bottom-second-box', {
-            center: [41.6032, -73.0877], // Coordinates for Connecticut
+            center: [41.6032, -73.0877],
             zoom: 10,
             layers: [],
             zoomControl: false,
@@ -442,7 +413,6 @@ function displaySelectedWithNeighbors(geoid) {
         }
     });
 
-    // Prepare the layers array, starting with the selected feature
     const layers = [];
 
     const selectedLayer = L.geoJSON(selectedFeature, {
@@ -470,17 +440,12 @@ function displaySelectedWithNeighbors(geoid) {
         layers.push(neighborLayer); // add neighbor layers
     });
 
-    // At this point, all necessary layers are in the 'layers' array.
 
-    // Clear existing layers on the neighbors map
     neighborsMap.eachLayer(function(layer) {
         neighborsMap.removeLayer(layer);
     });
 
-    // Create a group from the layers and add it to the map.
     const group = L.featureGroup(layers).addTo(neighborsMap);
-
-    // Adjust the view to show all relevant features
     neighborsMap.fitBounds(group.getBounds());
 
     console.log("Completed displaySelectedWithNeighbors");
@@ -489,15 +454,12 @@ function displaySelectedWithNeighbors(geoid) {
 
 function updateAllMaps(geoid) {
     console.log("inside updateAllMaps");
-    // Highlight the hex map based on the GEOID
     highlightHex(geoid);
     console.log("highlightHex done");
 
-    // Highlight the choropleth map based on the GEOID
     highlightCorrespondingChoropleth(geoid);
     console.log("highlightCorrespondingChoropleth done");
 
-    // Display the selected feature in the third box (if applicable in your UI)
     displaySelectedInThirdBox(geoid);
     console.log("displaySelectedInThirdBox done");
 
