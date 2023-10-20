@@ -5,7 +5,7 @@ var neighborsMap;
 var jsonData; 
 var hexMap; 
 var choroplethMap;
-var selectedcolor;
+//var selectedcolor;
 var actualMinPollutantValue = Number.POSITIVE_INFINITY;
 var actualMaxPollutantValue = Number.NEGATIVE_INFINITY;
 
@@ -53,7 +53,7 @@ function normalize(value, min, max) {
     return (value - min) / (max - min);
 }
 
-// Function to create a d3 color scale similar to 'viridis'
+
 function createColorScale() {
     var scale = d3.scaleSequential()
         .domain([0, 1]) 
@@ -61,7 +61,6 @@ function createColorScale() {
     return scale;
 }
 
-// Function to get a color based on a value, using the scale
 function getColor(value, min, max) {
     var colorScale = createColorScale();
     var normalizedValue = normalize(value, min, max);
@@ -87,7 +86,6 @@ function drawHexMap() {
     fetch('../data/hexagons.geojson')
         .then(response => response.json())
         .then(data => {
-
 
             var pollutantSelector = document.getElementById('pollutant-selector');
             console.log(pollutantSelector.value)
@@ -119,12 +117,16 @@ function drawHexMap() {
             hexLayerGroup = L.geoJson(data, {
                 style: style,
                 onEachFeature: function(feature, layer) {
+                    layer.selectedColor = style(feature).fillColor;
                     layer.on('click', function() {
                         var geoid = feature.properties.GEOID;
+                        var clickedColor = this.selectedColor;
+
                     
                         // Call the common update function
                         console.log('Updating from hexmap with GEOID:', geoid);
-                        updateAllMaps(geoid);
+                        console.log('selectedcolor', clickedColor)
+                        updateAllMaps(geoid, clickedColor);
                         console.log('Updated from hexmap with GEOID:', geoid);
                         
                     });
@@ -197,10 +199,13 @@ function drawChoroplethMap() {
         choroplethLayerGroup = L.geoJson(data, {
             style: style,
             onEachFeature: function(feature, layer) {
+                layer.selectedColor = style(feature).fillColor;
                 layer.on('click', function(e) {
-                    var geoid = feature.properties.GEOID;                
+                    
+                    var geoid = feature.properties.GEOID;  
+                    var clickedColor = this.selectedColor;              
                     console.log('Updating from choropleth map with GEOID:', geoid);
-                    updateAllMaps(geoid);
+                    updateAllMaps(geoid, clickedColor);
                     console.log('Updated from choropleth map with GEOID:', geoid);
                 });
             }
@@ -265,7 +270,7 @@ function highlightCorrespondingChoropleth(geoid) {
     }
 }
 
-function displaySelectedInThirdBox(geoid) {
+function displaySelectedInThirdBox(geoid, selectedcolor) {
 
     console.log("inside displaySelectedInThirdBox")
     var correspondingFeature;
@@ -276,13 +281,12 @@ function displaySelectedInThirdBox(geoid) {
     });
 
     if (correspondingFeature) {
-        // Calculate the geographical center (centroid) of the selected feature
         var centroid = turf.centroid(correspondingFeature);
         var centerCoordinates = centroid.geometry.coordinates.reverse(); 
 
         if (!miniMap) {
             miniMap = L.map('third-box', {
-                center: centerCoordinates, // use the centroid coordinates here
+                center: centerCoordinates, 
                 zoom: 5,
                 layers: [],
                 zoomControl: true,
@@ -303,7 +307,6 @@ function displaySelectedInThirdBox(geoid) {
             miniMap.removeLayer(selectedHexLayer);
         }
 
-
         selectedHexLayer = L.geoJson(correspondingFeature, {
             style: function() {
                 return {
@@ -315,7 +318,6 @@ function displaySelectedInThirdBox(geoid) {
                 };
             }
         }).addTo(miniMap);
-
 
         miniMap.fitBounds(selectedHexLayer.getBounds());
         console.log(" displaySelectedInThirdBox done")
@@ -452,15 +454,15 @@ function displaySelectedWithNeighbors(geoid) {
 }
 
 
-function updateAllMaps(geoid) {
-    console.log("inside updateAllMaps");
+function updateAllMaps(geoid, selectedcolor) {
+    console.log("inside updateAllMaps", selectedcolor);
     highlightHex(geoid);
     console.log("highlightHex done");
 
     highlightCorrespondingChoropleth(geoid);
     console.log("highlightCorrespondingChoropleth done");
 
-    displaySelectedInThirdBox(geoid);
+    displaySelectedInThirdBox(geoid, selectedcolor);
     console.log("displaySelectedInThirdBox done");
 
 }
