@@ -84,9 +84,12 @@ function getColor(value, min, max) {
 }
 
 
-// Function to initialize the hexagon map
 function drawHexMap() {
-    hexMap = L.map('hex-map', { // make sure 'hex-map' is the correct container ID
+    if (hexMap) {
+        hexMap.remove(); 
+    }
+
+    hexMap = L.map('hex-map', {
         //center: [41.6032, -73.0877],
         zoom: 13,
         layers: [],
@@ -99,18 +102,35 @@ function drawHexMap() {
     fetch('../data/hexagons.geojson')
         .then(response => response.json())
         .then(data => {
-            function defaultStyle(feature) {
+
+
+            var pollutantSelector = document.getElementById('pollutant-selector');
+            console.log(pollutantSelector.value)
+            var pollutantType = pollutantSelector.value; 
+        
+            let minPollutantValue = Number.POSITIVE_INFINITY;
+            let maxPollutantValue = Number.NEGATIVE_INFINITY;
+            data.features.forEach((feature) => {
+                let val = feature.properties[pollutantType];
+                if (val < minPollutantValue) minPollutantValue = val;
+                if (val > maxPollutantValue) maxPollutantValue = val;
+            });
+
+            function style(feature) {
+
+                var value = feature.properties[pollutantType]; // The actual value for this feature
+                selectedcolor = getColor(value, minPollutantValue, maxPollutantValue);
                 return {
-                    fillColor: 'white',
-                    weight: 0.3,
-                    opacity: 1,
-                    color: 'black',
-                    fillOpacity: 0.7
+                    color: 'white', // Border color for the choropleth shapes
+                    fillColor: selectedcolor, // Fill color based on the feature's specific value
+                    fillOpacity: 0.7,
+                    weight: 0.5 // Border thickness
                 };
             }
+            
 
             hexLayerGroup = L.geoJson(data, {
-                style: defaultStyle,
+                style: style,
                 onEachFeature: function(feature, layer) {
                     layer.on('click', function() {
                         var geoid = feature.properties.GEOID;
@@ -210,7 +230,7 @@ function highlightHex(geoid) {
         return;
     }
 
-    // New logic: We're not going to loop through every layer this time
+
     var layerToHighlight = null;
     hexLayerGroup.eachLayer(function(layer) {
         if (layer.feature.properties.GEOID === geoid) {
@@ -471,6 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var pollutantSelector = document.getElementById('pollutant-selector');
     pollutantSelector.addEventListener('change', function() {
+        drawHexMap();
         drawChoroplethMap(); 
         if (miniMap) {
             miniMap.remove(); 
